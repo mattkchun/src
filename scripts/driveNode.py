@@ -79,10 +79,11 @@ class driveStop(object):
         #box size is 150,220
         #rospy.loginfo("box_size: {}".format(self.box_size))
         self.cmd.drive.steering_angle=self.new_angle
-        if self.box_size < (5000):
+        if self.box_size < (10000):
             self.cmd.drive.speed = 1
         else:
             self.cmd.drive.speed = 0
+        self.cmd.drive.speed=1
 
 def main():
     global AUTONOMOUS_MODE

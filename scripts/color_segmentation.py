@@ -19,8 +19,8 @@ def cd_color_segmentation(img, show_image=False):
     # define lower and upper bound of image values
     # TO DO!
     #rospy.loginfo(new_img)
-    low_range  = np.array( [ 15, 120, 200] ) #90,120,200
-    high_range = np.array( [ 45, 255, 255] ) #120,255,255
+    low_range  = np.array( [ 0, 220, 161] ) #90,120,200
+    high_range = np.array( [ 28, 255, 255] ) #120,255,255
 
     # create mask for image with overlapping values
     mask = cv2.inRange(new_img, low_range, high_range)
