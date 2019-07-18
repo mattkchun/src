@@ -111,8 +111,8 @@ class driveStop(object):
                 self.drive_state=2
         elif self.drive_state == 2:
             self.drive_to_cone()
-        elif self.drive_state == 3:
-            center_cone()
+#        elif self.drive_state == 3:
+#            center_cone()
         else:
             pass
 	
@@ -145,12 +145,8 @@ class driveStop(object):
             return True
         else:
             return False
-    def center_cone(self):
-        if abs(self.box_x-320)<100 and timer <=0:
-            self.cmd.drive.speed=-1
-            self.cmd.drive.steering= 320-self.box_x
-            timer = 10
-        
+#    def center_cone(self):
+#        if
 
 
 
