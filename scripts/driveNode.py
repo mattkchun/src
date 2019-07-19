@@ -129,7 +129,28 @@ class driveStop(object):
             self.cmd.drive.speed = 1
         else:
             self.cmd.drive.speed = 0
-
+	def fieldpot(self):
+        points=[]
+       	for item in self.data.ranges:
+       		#inverse squer law
+       	    x,y=self.pol2cart((float(item)),(self.data.angle_min) + (self.data.ranges.index(item) * self.data.angle_increment))
+            #type(points)-
+       	    points.append([x,y])
+            
+        	#print("points array is {0}".format(isdr))
+		points.append([0,5])
+       	total=np.sum(points,axis=0)
+       	#print(total)
+       	#total[1]+=self.behindforce*(len(self.data.ranges)/3)*1/self.DESIRED_DISTANCE**2
+       	tvel, trad =self.cart2pol(total[0],total[1])
+       	print("total array is {0}".format(total))#. total sum is (r,theta){1},{2}".format(total,tvel,trad))
+        self.VELOCITY=tvel*self.kv
+       	angle=self.ktheta*trad
+       	#print(tvel)
+       	#self.drive(1,angle)
+		self.cmd.drive.speed = 1
+        self.cmd.drive.steering_angle = angle
+		
     def find_sign(self):
         color_box, sign_box = sift_det("images/oneway.jpg",self.camera_data.cv_image)
         rospy.loginfo("cb: {} sb: {}".format(color_box,sign_box))
