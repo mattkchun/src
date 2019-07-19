@@ -47,6 +47,7 @@ class driveStop(object):
         self.drive_state = -1
         self.turnDirection = 0
         self.timer=0
+        self.last_dir = 0
     
     
     def scan_callback(self, data):
@@ -78,41 +79,69 @@ class driveStop(object):
         #rospy.loginfo("box: {}".format(self.flag_box))
         #finds the size of the box
         self.size_calc()
-        rospy.loginfo("timer: {}".format(self.timer))
+        #rospy.loginfo("timer: {}".format(self.timer))
         if self.drive_state == -1:
             scan = data.ranges
             max = len(scan)
             front = scan[(19*max)/40:(21*max)/40]
-            if min(front)<1.5:
+            if min(front)<2.6:
                 self.drive_state=0
             else:
                 self.cmd.drive.speed = 1
                 self.cmd.drive.steering_angle = 0.045
         elif self.drive_state == 0:
-            if self.find_sign():
-                self.drive_state=1
-                self.timer = 15
+            dir = self.signdir(self.camera_data.cv_image)
+            scan = data.ranges
+            max = len(scan)
+            front = scan[(9*max)/20:(11*max)/20]
+            rospy.loginfo("min: {}".format(min(front)))
+            if dir != 0 and dir == self.last_dir:
+                self.turnDirection = dir
+                self.drive_state = 1
+                self.timer = 35
             else:
-                scan = data.ranges
-                max = len(scan)
-                front = scan[(9*max)/20:(11*max)/20]
-                #rospy.loginfo("min: {}".format(min(front)))
-                if min(front)<0.8:
+                self.cmd.drive.speed = 0
+                self.last_dir = dir
+            
+                if min(front)<2.1:
                     self.cmd.drive.speed = 0
                     self.cmd.drive.steering_angle = 0
                 else:
-                    self.cmd.drive.speed = 0.4
+                    self.cmd.drive.speed = 0.3
                     self.cmd.drive.steering_angle = 0.045
+#            if self.find_sign():
+#                self.drive_state=1
+#                self.timer = 15
+#            else:
+#                scan = data.ranges
+#                max = len(scan)
+#                front = scan[(9*max)/20:(11*max)/20]
+#                #rospy.loginfo("min: {}".format(min(front)))
+#                if min(front)<0.8:
+#                    self.cmd.drive.speed = 0
+#                    self.cmd.drive.steering_angle = 0
+#                else:
+#                    self.cmd.drive.speed = 0.4
+#                    self.cmd.drive.steering_angle = 0.045
         elif self.drive_state == 1:
-            self.cmd.drive.speed = -1
-            self.cmd.drive.steering_angle = 0
-            self.timer-=1
             if self.timer<=0:
                 self.drive_state=2
+                self.timer = 15
+            else:
+                self.cmd.drive.steering_angle = -self.turnDirection
+                self.cmd.drive.speed = 1
+                self.timer-=1
         elif self.drive_state == 2:
-            self.drive_to_cone()
+            if self.timer<=0:
+                self.drive_state=3
+            else:
+                self.cmd.drive.steering_angle = self.turnDirection
+                self.cmd.drive.speed = -1
+                self.timer-=1
         elif self.drive_state == 3:
-            center_cone()
+            self.drive_to_cone()
+#        elif self.drive_state == 4:
+#            center_cone()
         else:
             pass
 	
@@ -121,14 +150,23 @@ class driveStop(object):
         that is being taken care of in the main() function"""
         #box size is 150,220
         #rospy.loginfo("box_size: {}".format(self.box_size))
-        if self.box_size<100:
-            self.cmd.drive.steering_angle = -self.turnDirection
+        scan = self.data.ranges
+        max = len(scan)
+        rospy.loginfo("low: {}, high: {}".format(int(((8-(self.new_angle*3))*max)/20),int(((12-(self.new_angle*3))*max)/20)))
+        front = scan[int(((8-(self.new_angle*3))*max)/20):int(((12-(self.new_angle*3))*max)/20)]
+        rospy.loginfo("min: {}".format(min(front)))
+        if self.box_size<20:
+            self.cmd.drive.steering_angle = self.cmd.drive.steering_angle = 0.045 #-self.turnDirection
             self.cmd.drive.speed = 1
-        elif self.box_size < (12000):
+        elif min(front)<0.26:
+            self.cmd.drive.speed = 0
+            self.cmd.drive.steering_angle = 0
+        elif self.box_size < (5000):
             self.cmd.drive.steering_angle=self.new_angle
             self.cmd.drive.speed = 1
         else:
-            self.cmd.drive.speed = 0
+            self.cmd.drive.steering_angle=self.new_angle
+            self.cmd.drive.speed = 0.3
 
     def find_sign(self):
         color_box, sign_box = sift_det("images/oneway.jpg",self.camera_data.cv_image)
@@ -145,15 +183,60 @@ class driveStop(object):
             return True
         else:
             return False
-    def center_cone(self):
-        if abs(self.box_x-320)<100 and timer <=0:
-            self.cmd.drive.speed=-1
-            self.cmd.drive.steering= 320-self.box_x
-            timer = 10
-        
 
+#    def center_cone(self):
+#        if timer==0:
+#            if self.box_size > 15000:
+#                if abs(self.box_x-320)<200:
+#                    self.cmd.drive.speed=0
+#                    self.cmd.drive.steering=0
+#                    self.drive_state = 4
+#                else:
+#                    self.cmd.drive.speed=-1
+#                    self.cmd.drive.steering=-self.new_angle
+#                    timer = 10
+#            else:
+#                self.drive_state = 2
+#        elif timer>0:
+#            self.cmd.drive.speed=-1
+#            self.cmd.drive.steering=-self.new_angle
+#            timer = 10
+#            timer-=1
 
-
+    def signdir(self,img,threshold=.6,bestmatch=False):
+        img_rgb = img
+        img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_BGR2GRAY)
+        bw = cv2.threshold(img_gray, 90, 255, cv2.THRESH_BINARY)[1]
+#        template = cv2.imread("images/LEFT.png",0)
+#        lres = cv2.matchTemplate(bw,template,cv2.TM_CCOEFF_NORMED)
+#        template = cv2.imread("images/RIGHT.png",0)
+#        rres = cv2.matchTemplate(bw,template,cv2.TM_CCOEFF_NORMED)
+        template = cv2.imread("images/LEFTS.png",0)
+        lress = cv2.matchTemplate(bw,template,cv2.TM_CCOEFF_NORMED)
+        template = cv2.imread("images/RIGHTS.png",0)
+        rress = cv2.matchTemplate(bw,template,cv2.TM_CCOEFF_NORMED)
+#        template = cv2.imread("images/LEFTxS.png",0)
+#        lresxs = cv2.matchTemplate(bw,template,cv2.TM_CCOEFF_NORMED)
+#        template = cv2.imread("images/RIGHTxS.png",0)
+#        rresxs = cv2.matchTemplate(bw,template,cv2.TM_CCOEFF_NORMED)
+        output=0
+        if(bestmatch):
+            output = 0
+#            if(np.max(lres)<np.max(rres)):
+#                output=1
+#            else:
+#                output=-1
+        else:
+#            if(np.max(lres) >= threshold) or (np.max(lress)>= threshold) or (np.max(lresxs)>= threshold):
+#                output-=1
+#            if(np.max(rres) >= threshold) or (np.max(rress)>= threshold) or (np.max(rresxs)>= threshold):
+#                output+=1
+            if np.max(lress)>= threshold:
+                output-=1
+            if np.max(rress)>= threshold:
+                output+=1
+        rospy.loginfo("output: {}".format(output))
+        return output
 
 def main():
     global AUTONOMOUS_MODE
