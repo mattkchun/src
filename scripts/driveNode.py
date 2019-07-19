@@ -150,23 +150,28 @@ class driveStop(object):
             self.cmd.drive.speed=-1
             self.cmd.drive.steering= 320-self.box_x
             timer = 10
-				# image, threshold for matching and bestmatch=true means more likely
-    def signdir(self,img,threshold=.7,bestmatch=False):
+				# image, dist for min dist from wall,threshold for matching and bestmatch=true means more likely
+    def signdir(self,img,dist,threshold=.7,bestmatch=False):
 		img_rgb = cv.imread(img)
 		img_gray = cv.cvtColor(img_rgb, cv.COLOR_BGR2GRAY)
 		bw = cv2.threshold(img_gray, 90, 255, cv2.THRESH_BINARY)[1]
-		ltemplate = cv.imread("images/LEFT.png",0)
-		lres = cv.matchTemplate(bw,template,cv.TM_CCOEFF_NORMED)
-		rtemplate = cv.imread("images/RIGHT.png",0)
-		rres = cv.matchTemplate(bw,template,cv.TM_CCOEFF_NORMED)
-		ltemplate = cv.imread("images/LEFTS.png",0)
-		lres = cv.matchTemplate(bw,template,cv.TM_CCOEFF_NORMED)
-		rtemplate = cv.imread("images/RIGHTS.png",0)
-		rres = cv.matchTemplate(bw,template,cv.TM_CCOEFF_NORMED)
-		ltemplate = cv.imread("images/LEFTxS.png",0)
-		lres = cv.matchTemplate(bw,template,cv.TM_CCOEFF_NORMED)
-		rtemplate = cv.imread("images/RIGHTxS.png",0)
-		rres = cv.matchTemplate(bw,template,cv.TM_CCOEFF_NORMED)
+		if(dist>1.9 and dist<2.5):
+		    template = cv.imread("images/LEFT.png",0)
+		    lres = cv.matchTemplate(bw,template,cv.TM_CCOEFF_NORMED)
+	        template = cv.imread("images/RIGHT.png",0)
+		    rres = cv.matchTemplate(bw,template,cv.TM_CCOEFF_NORMED)
+        elif(dist>.7 and dist<=1.9):
+		    template = cv.imread("images/LEFTS.png",0)
+		    lress = cv.matchTemplate(bw,template,cv.TM_CCOEFF_NORMED)
+		    template = cv.imread("images/RIGHTS.png",0)
+		    rress = cv.matchTemplate(bw,template,cv.TM_CCOEFF_NORMED)
+        elif(dist<=.7):    
+		    template = cv.imread("images/LEFTxS.png",0)
+		    lresxs = cv.matchTemplate(bw,template,cv.TM_CCOEFF_NORMED)
+		    template = cv.imread("images/RIGHTxS.png",0)
+		    rresxs = cv.matchTemplate(bw,template,cv.TM_CCOEFF_NORMED)
+        else:
+            return 0
 		output=0
 		if(bestmatch):
 			if(np.max(lres)<np.max(rres)):
