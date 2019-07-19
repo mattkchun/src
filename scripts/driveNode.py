@@ -150,7 +150,35 @@ class driveStop(object):
             self.cmd.drive.speed=-1
             self.cmd.drive.steering= 320-self.box_x
             timer = 10
-        
+				# image, threshold for matching and bestmatch=true means more likely
+    def signdir(self,img,threshold=.7,bestmatch=False):
+		img_rgb = cv.imread(img)
+		img_gray = cv.cvtColor(img_rgb, cv.COLOR_BGR2GRAY)
+		bw = cv2.threshold(img_gray, 90, 255, cv2.THRESH_BINARY)[1]
+		ltemplate = cv.imread("images/LEFT.png",0)
+		lres = cv.matchTemplate(bw,template,cv.TM_CCOEFF_NORMED)
+		rtemplate = cv.imread("images/RIGHT.png",0)
+		rres = cv.matchTemplate(bw,template,cv.TM_CCOEFF_NORMED)
+		ltemplate = cv.imread("images/LEFTS.png",0)
+		lres = cv.matchTemplate(bw,template,cv.TM_CCOEFF_NORMED)
+		rtemplate = cv.imread("images/RIGHTS.png",0)
+		rres = cv.matchTemplate(bw,template,cv.TM_CCOEFF_NORMED)
+		ltemplate = cv.imread("images/LEFTxS.png",0)
+		lres = cv.matchTemplate(bw,template,cv.TM_CCOEFF_NORMED)
+		rtemplate = cv.imread("images/RIGHTxS.png",0)
+		rres = cv.matchTemplate(bw,template,cv.TM_CCOEFF_NORMED)
+		output=0
+		if(bestmatch):
+			if(np.max(lres)<np.max(rres)):
+				output=1
+			else:
+				output=-1
+		else:
+			if(np.max(lres) >= threshold) or (np.max(lress)>= threshold)) or (np.max(lresxs)>= threshold)):
+				output-=1
+			if(np.max(rres) >= threshold) or (np.max(rress)>= threshold)) or (np.max(lresxs)>= threshold)):
+				output+=1
+		return output # -1 if left 1 if right and 0 if unsure
 
 
 
